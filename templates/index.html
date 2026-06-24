@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPK Ekspedisi (SAW)</title>
+    <!-- Use Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-box-open logo-icon"></i>
+                <h2>SPK Ekspedisi</h2>
+            </div>
+            
+            <div class="config-section">
+                <h3><i class="fa-solid fa-gear"></i> Konfigurasi</h3>
+                
+                <div class="config-card">
+                    <h4>Alternatif</h4>
+                    <div class="badges">
+                        {% for alt in config.alternatif %}
+                        <span class="badge">{{ alt }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="config-card">
+                    <h4>Bobot Kriteria</h4>
+                    <table class="styled-table" style="font-size: 0.8rem;">
+                        <thead>
+                            <tr>
+                                <th>Kriteria</th>
+                                <th>Bobot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for key, val in config.bobot.items() %}
+                            <tr>
+                                <td>
+                                    <strong style="color:var(--text-main)">{{ key }}</strong><br>
+                                    <span style="color:var(--text-muted)">{{ config.kriteria[key] }}</span>
+                                </td>
+                                <td style="color:var(--text-main); font-weight: 500;">{{ val }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <div>
+                    <h1>Sistem Pendukung Keputusan Pemilihan Jasa Ekspedisi</h1>
+                    <p>Metode <strong style="color: var(--primary);">Simple Additive Weighting (SAW)</strong></p>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                
+                <!-- Input Section -->
+                <div class="card input-card">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="upload"><i class="fa-solid fa-file-excel"></i> Upload File Excel</button>
+                        <button class="tab-btn" data-tab="manual"><i class="fa-solid fa-keyboard"></i> Input Manual</button>
+                    </div>
+                    
+                    <!-- Upload Tab -->
+                    <div class="tab-content active" id="tab-upload">
+                        <p class="desc">Unggah file excel hasil kuesioner Anda untuk diproses secara otomatis.</p>
+                        <div class="upload-area" id="drop-zone">
+                            <i class="fa-solid fa-cloud-arrow-up fa-3x"></i>
+                            <p>Tarik & Letakkan file .xlsx di sini atau klik untuk memilih file</p>
+                            <input type="file" id="excel-file" accept=".xlsx" hidden>
+                            <button class="btn btn-primary" onclick="document.getElementById('excel-file').click()">Pilih File Excel</button>
+                        </div>
+                        <div class="actions mt-3">
+                            <button id="process-upload-btn" class="btn btn-success" disabled><i class="fa-solid fa-rocket"></i> Proses Data SAW</button>
+                            <span id="file-name-display" style="margin-left:15px; color:var(--text-muted); font-weight: 500;"></span>
+                        </div>
+                    </div>
+
+                    <!-- Manual Input Tab -->
+                    <div class="tab-content" id="tab-manual">
+                        <p class="desc">Isi penilaian kuesioner (skala 1 - 5). Anda bisa memasukkan data dari beberapa orang/responden dan rata-ratanya akan dihitung.</p>
+                        
+                        <div class="manual-nav">
+                            {% for alt in config.alternatif %}
+                            <button class="alt-btn {% if loop.first %}active{% endif %}" data-alt="{{ alt }}">{{ alt }}</button>
+                            {% endfor %}
+                        </div>
+
+                        <form id="manual-form">
+                            {% for alt in config.alternatif %}
+                            <div class="alt-form-section {% if loop.first %}active{% endif %}" id="form-{{ alt }}">
+                                <h4>Penilaian Layanan <span style="color:var(--primary);">{{ alt }}</span></h4>
+                                <div class="grid-2">
+                                    {% for k_id, k_name in config.kriteria.items() %}
+                                    <div class="form-group">
+                                        <label><strong>{{ k_id }}</strong>: {{ k_name }}</label>
+                                        <div class="radio-group">
+                                            {% for i in range(1, 6) %}
+                                            <label class="radio-label">
+                                                <input type="radio" name="{{ alt }}_{{ k_id }}" value="{{ i }}" {% if i == 3 %}checked{% endif %}>
+                                                <span>{{ i }}</span>
+                                            </label>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <div class="form-actions">
+                                <button type="button" id="add-respondent-btn" class="btn btn-secondary"><i class="fa-solid fa-plus"></i> Tambah Data Responden</button>
+                                <span class="respondent-count">Total Responden: <strong id="resp-count-val">0</strong> orang</span>
+                            </div>
+                        </form>
+                        
+                        <div class="actions mt-3 flex-between">
+                            <button id="reset-manual-btn" class="btn btn-danger"><i class="fa-solid fa-trash"></i> Reset Seluruh Data</button>
+                            <button id="process-manual-btn" class="btn btn-success"><i class="fa-solid fa-rocket"></i> Hitung Rata-rata & Proses SAW</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loader -->
+                <div id="loader" class="loader-container hidden">
+                    <div class="spinner"></div>
+                    <p style="color:var(--primary); font-weight:500; font-size:1.1rem; margin-top:10px;">Mengkalkulasi Matriks & Normalisasi SAW...</p>
+                </div>
+
+                <!-- Results Section -->
+                <div id="results-section" class="hidden">
+                    <div class="winner-banner card mb-4 mt-3">
+                        <div class="winner-icon"><i class="fa-solid fa-trophy"></i></div>
+                        <div class="winner-info">
+                            <h3>Rekomendasi Terbaik</h3>
+                            <p id="winner-text">Loading...</p>
+                        </div>
+                        <button id="download-excel-btn" class="btn btn-primary" style="background:var(--success);"><i class="fa-solid fa-file-arrow-down"></i> Unduh Laporan Excel</button>
+                    </div>
+
+                    <div class="grid-2 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>[1] Matriks Keputusan</h3>
+                                <span>Nilai Rata-rata Responden</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="styled-table" id="matriks-table">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>[2] Matriks Ternormalisasi</h3>
+                                <span>Hasil Normalisasi Kriteria Benefit</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="styled-table" id="norm-table">
+                                    <thead></thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3>[3] Hasil Akhir & Ranking</h3>
+                            <span>Berdasarkan perkalian bobot preferensi</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="styled-table" id="hasil-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 100px; text-align: center;">Peringkat</th>
+                                        <th>Nama Alternatif</th>
+                                        <th style="text-align: right; padding-right: 30px;">Nilai Akhir SAW</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fa-solid fa-chart-simple"></i> Visualisasi Data SPK</h3>
+                            <div class="chart-tabs">
+                                <button class="chart-tab-btn active" data-chart="final">Nilai Akhir Alternatif</button>
+                                <button class="chart-tab-btn" data-chart="criteria">Perbandingan Kriteria</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="mainChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Pass config to JS -->
+    <script>
+        window.APP_CONFIG = {{ config|tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
