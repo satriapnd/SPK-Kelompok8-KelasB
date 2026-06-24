@@ -167,6 +167,5 @@ Metode SAW bekerja dengan langkah-langkah:
 3. **Penjumlahan** - Menjumlahkan hasil pembobotan untuk mendapatkan nilai akhir
 4. **Ranking** - Mengurutkan alternatif berdasarkan nilai akhir (semakin tinggi semakin baik)
 
-```
 
 
