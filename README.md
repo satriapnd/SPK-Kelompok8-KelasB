@@ -42,12 +42,6 @@ Buka terminal/command prompt di folder proyek dan jalankan:
 pip install flask pandas openpyxl
 ```
 
-Atau jika Anda memiliki file `requirements.txt`:
-
-```bash
-pip install -r requirements.txt
-```
-
 ### Langkah 2: Menjalankan Aplikasi
 
 Dari folder proyek, jalankan perintah:
